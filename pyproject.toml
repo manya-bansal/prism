@@ -1,0 +1,13 @@
+[project]
+name = "prism"
+version = "0.1.0"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["prism"]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
