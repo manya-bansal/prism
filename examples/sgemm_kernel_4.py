@@ -65,9 +65,9 @@ def my_sgemm_kernel_4(M: int @ grid[1],
 
                                     for dotIdx in range(0, BK, 1):
                                         for i in range(0, TN, 1):
-                                            regM[i] = As[dotIdx * BM + threadRow * TM + i]
+                                            regM[i] = As_thrd[dotIdx * BM + threadRow * TM + i]
                                         for i in range(0, TN, 1):
-                                            regN[i] = Bs[dotIdx * BN + threadCol * TN + i]
+                                            regN[i] = Bs_thrd[dotIdx * BN + threadCol * TN + i]
                                         for resIdxM in range(0, TM, 1):
                                             for resIdxN in range(0, TN, 1):
                                                 threadResults[resIdxM * TN + resIdxN] += regM[resIdxM] * regN[resIdxN]
