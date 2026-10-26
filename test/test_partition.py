@@ -16,6 +16,7 @@ from prism.registry import registry
 from prism.errors import (
     InvalidPartitionError,
     PartitionPerspectiveError,
+    UndeclaredVariableError,
     PartitionNonPointerError,
     PartitionLocalPointerError,
 )
@@ -110,4 +111,16 @@ class TestPartitionConstruct:
 
         func_type, ast_node, _ = registry.get("offset_narrow_var")
         with pytest.raises(InvalidPartitionError):
+            check_function(func_type, ast_node)
+
+    def test_partition_old_variable_unavailable(self):
+        """Cannot use old variable name inside partition."""
+        @requires(grid[1], block[1], thread[1])
+        @prism("device")
+        def variable_unavailable(data: ptr(int) @ grid[1], n: int @ grid[1]):
+            with partition(data, p=thread[1], f=lambda i: i + id() * n) as my_data:
+                x : const(int) @ grid[1] = data[0]
+
+        func_type, ast_node, _ = registry.get("variable_unavailable")
+        with pytest.raises(UndeclaredVariableError):
             check_function(func_type, ast_node)

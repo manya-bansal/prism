@@ -16,6 +16,7 @@ from prism.registry import registry
 from prism.errors import (
     InvalidClaimError,
     ClaimMultipleBranchError,
+    UndeclaredVariableError,
     InvalidPartitionError,
 )
 
@@ -95,3 +96,20 @@ class TestClaimConstruct:
 
         func_type, ast_node, _ = registry.get("use_original_after_claim")
         check_function(func_type, ast_node)  # Should not raise
+
+
+    def test_claim_old_variable_unavailable(self):
+        """Cannot use old variable name inside claim."""
+        @requires(block[4], thread[1])
+        @prism("device")
+        def variable_unavailable(data: ptr(int) @ block[4]):
+            with claim(data, p=thread[1]) as my_data:
+                match split(block):
+                    case 2:
+                        x: int @ thread[1] = data[0] 
+                    case 2:
+                        pass 
+
+        func_type, ast_node, _ = registry.get("variable_unavailable")
+        with pytest.raises(UndeclaredVariableError):
+            check_function(func_type, ast_node)
