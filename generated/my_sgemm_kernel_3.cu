@@ -48,10 +48,10 @@ __global__ __launch_bounds__((BM * BN) / (TM * TN), 1) void my_sgemm_kernel_3(in
                                     __syncthreads();
                                     for (int dotIdx = 0; dotIdx < BK; dotIdx++) {
                                         for (int i = 0; i < TN; i++) {
-                                            regM[i] = As[((((threadRow * TM) + i) * BK) + dotIdx)];
+                                            regM[i] = As_thrd[((((threadRow * TM) + i) * BK) + dotIdx)];
                                         }
                                         for (int i = 0; i < TN; i++) {
-                                            regN[i] = Bs[(((dotIdx * BN) + (threadCol * TN)) + i)];
+                                            regN[i] = Bs_thrd[(((dotIdx * BN) + (threadCol * TN)) + i)];
                                         }
                                         for (int resIdxM = 0; resIdxM < TM; resIdxM++) {
                                             for (int resIdxN = 0; resIdxN < TN; resIdxN++) {
@@ -71,7 +71,7 @@ __global__ __launch_bounds__((BM * BN) / (TM * TN), 1) void my_sgemm_kernel_3(in
                                 {
                                     int __block_id_2 = __block_id_1;
                                     int __thread_id_2 = __thread_id_1 % 1;
-                                    C_thrd[0] = ((alpha * threadResults[((resIdxM * TN) + resIdxN)]) + (beta * C_blk[(((((threadRow * TM) + resIdxM) * N) + (threadCol * TN)) + resIdxN)]));
+                                    C_thrd[0] = ((alpha * threadResults[((resIdxM * TN) + resIdxN)]) + (beta * C_thrd[(((((threadRow * TM) + resIdxM) * N) + (threadCol * TN)) + resIdxN)]));
                                 }
                             }
                         }

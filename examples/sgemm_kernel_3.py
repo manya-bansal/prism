@@ -64,9 +64,9 @@ def my_sgemm_kernel_3(M: int @ grid[1],
 
                                     for dotIdx in range(0, BK, 1):
                                         for i in range(0, TN, 1):
-                                            regM[i] = As[(threadRow * TM + i) * BK + dotIdx]
+                                            regM[i] = As_thrd[(threadRow * TM + i) * BK + dotIdx]
                                         for i in range(0, TN, 1):
-                                            regN[i] = Bs[dotIdx * BN + threadCol * TN + i]
+                                            regN[i] = Bs_thrd[dotIdx * BN + threadCol * TN + i]
                                         for resIdxM in range(0, TM, 1):
                                             for resIdxN in range(0, TN, 1):
                                                 threadResults[resIdxM * TN + resIdxN] += regM[resIdxM] * regN[resIdxN]
@@ -75,7 +75,7 @@ def my_sgemm_kernel_3(M: int @ grid[1],
                         for resIdxN in range(0, TN, 1):
                             with partition(C_blk, p=thread[1], offset=(threadRow * TM + resIdxM) * N + threadCol * TN + resIdxN) as C_thrd:
                                 with group(thread[1]):
-                                    C_thrd[0] = alpha * threadResults[resIdxM * TN + resIdxN] + beta * C_blk[(threadRow * TM + resIdxM) * N + threadCol * TN + resIdxN]
+                                    C_thrd[0] = alpha * threadResults[resIdxM * TN + resIdxN] + beta * C_thrd[(threadRow * TM + resIdxM) * N + threadCol * TN + resIdxN]
 
 
 if __name__ == "__main__":

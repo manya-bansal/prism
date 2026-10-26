@@ -29,7 +29,7 @@ def my_sgemm_kernel_1(M: int @ grid[1],
                     tmp: float @ thread[1] = 0
                     for i in range(0, K, 1):
                         tmp += A[x * K + i] * B[i * N + y]
-                    C_thrd[x * N + y] = alpha * tmp + beta * C[x * N + y]
+                    C_thrd[x * N + y] = alpha * tmp + beta * C_thrd[x * N + y]
 
 
 if __name__ == "__main__":

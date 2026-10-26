@@ -20,7 +20,7 @@ __global__ void my_sgemm_kernel_1(int M, int N, int K, float alpha, const float*
                     for (int i = 0; i < K; i++) {
                         tmp += (A[((x * K) + i)] * B[((i * N) + y)]);
                     }
-                    C_thrd[((x * N) + y)] = ((alpha * tmp) + (beta * C[((x * N) + y)]));
+                    C_thrd[((x * N) + y)] = ((alpha * tmp) + (beta * C_thrd[((x * N) + y)]));
                 }
             }
         }

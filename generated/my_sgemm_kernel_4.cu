@@ -48,10 +48,10 @@ __global__ __launch_bounds__((BM * BN) / (TM * TN), 1) void my_sgemm_kernel_4(in
                                     __syncthreads();
                                     for (int dotIdx = 0; dotIdx < BK; dotIdx++) {
                                         for (int i = 0; i < TN; i++) {
-                                            regM[i] = As[(((dotIdx * BM) + (threadRow * TM)) + i)];
+                                            regM[i] = As_thrd[(((dotIdx * BM) + (threadRow * TM)) + i)];
                                         }
                                         for (int i = 0; i < TN; i++) {
-                                            regN[i] = Bs[(((dotIdx * BN) + (threadCol * TN)) + i)];
+                                            regN[i] = Bs_thrd[(((dotIdx * BN) + (threadCol * TN)) + i)];
                                         }
                                         for (int resIdxM = 0; resIdxM < TM; resIdxM++) {
                                             for (int resIdxN = 0; resIdxN < TN; resIdxN++) {
