@@ -16,7 +16,6 @@ from prism.registry import registry
 from prism.errors import (
     InvalidPartitionError,
     PartitionPerspectiveError,
-    UndeclaredVariableError,
     PartitionNonPointerError,
     PartitionLocalPointerError,
 )
@@ -48,17 +47,6 @@ class TestPartitionConstruct:
         func_type, ast_node, _ = registry.get("partition_bound_mismatch")
         with pytest.raises(InvalidPartitionError, match="broadest bound"):
             check_function(func_type, ast_node)
-
-    def test_partition_allows_reading_original_pointer(self):
-        """Original pointer can still be read inside partition block."""
-        @requires(grid[1], block[1], thread[1])
-        @prism("device")
-        def use_original_after_partition(data: ptr(int) @ grid[1]):
-            with partition(data, p=thread[1], f=lambda i: i) as my_data:
-                my_data[0] = data[0]
-
-        func_type, ast_node, _ = registry.get("use_original_after_partition")
-        check_function(func_type, ast_node)  # Should not raise
 
     def test_partition_lambda_rejects_narrow_perspective_var(self):
         """Lambda cannot use variables narrower than target perspective."""
@@ -114,7 +102,7 @@ class TestPartitionConstruct:
             check_function(func_type, ast_node)
 
     def test_partition_old_variable_unavailable(self):
-        """Cannot use old variable name inside partition."""
+        """Cannot read old variable name inside partition."""
         @requires(grid[1], block[1], thread[1])
         @prism("device")
         def variable_unavailable(data: ptr(int) @ grid[1], n: int @ grid[1]):
@@ -122,5 +110,18 @@ class TestPartitionConstruct:
                 x : const(int) @ grid[1] = data[0]
 
         func_type, ast_node, _ = registry.get("variable_unavailable")
-        with pytest.raises(UndeclaredVariableError):
+        with pytest.raises(InvalidPartitionError):
+            check_function(func_type, ast_node)
+
+
+    def test_partition_old_variable_unavailable_write(self):
+        """Cannot write to old variable name inside partition."""
+        @requires(thread[1])
+        @prism("device")
+        def variable_unavailable(data: ptr(int) @ thread[1], n: int @ grid[1]):
+            with partition(data, p=thread[1], f=lambda i: i + id() * n) as my_data:
+                data[0] = 1
+
+        func_type, ast_node, _ = registry.get("variable_unavailable")
+        with pytest.raises(InvalidPartitionError):
             check_function(func_type, ast_node)

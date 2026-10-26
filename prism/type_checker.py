@@ -3,8 +3,8 @@ Type checker for prism functions.
 """
 
 import ast
-from typing import Any
-from prism.symbol_table import SymbolTable
+from typing import Any, Optional
+from prism.symbol_table import SymbolTable, VariableDeclaration
 from prism.types import Type, PrismType, PtrType, ConstType, RestrictType, ConstExprType, MemorySpace
 from prism.perspective import Perspective, PerspectiveBound, Level
 from prism.errors import (
@@ -361,9 +361,7 @@ class TypeChecker(ast.NodeVisitor):
             raise InvalidAnnotationError("Assignment target must be a simple variable or pointer dereference")
 
         lhs_name = target.id
-        lhs_decl = self.symbol_table.lookup(lhs_name)
-        if not lhs_decl:
-            raise UndeclaredVariableError(lhs_name)
+        lhs_decl = self.lookup_with_partition_guard(lhs_name)
 
         # Pointers cannot be on LHS of assignment
         if self._contains_ptr(lhs_decl.var_type):
@@ -393,9 +391,7 @@ class TypeChecker(ast.NodeVisitor):
             raise InvalidAnnotationError("Write-through target must be a simple pointer dereference")
 
         ptr_name = target.value.id
-        ptr_decl = self.symbol_table.lookup(ptr_name)
-        if not ptr_decl:
-            raise UndeclaredVariableError(ptr_name)
+        ptr_decl = self.lookup_with_partition_guard(ptr_name)
 
         # Check that it's a pointer
         if not self._contains_ptr(ptr_decl.var_type):
@@ -512,6 +508,18 @@ class TypeChecker(ast.NodeVisitor):
                 return RestrictType(inner)
         raise TypeError("Cannot dereference non-pointer type")
 
+    def lookup_with_partition_guard(self, ptr_name) -> Optional[VariableDeclaration]:
+        # Look up the pointer in symbol table
+        ptr_decl = self.symbol_table.lookup(ptr_name)
+        if not ptr_decl:
+            raise UndeclaredVariableError(ptr_name)
+
+        # Check that this variable has not been partitioned 
+        self._check_not_partitioned(ptr_name)
+
+        return ptr_decl
+
+
     def _get_expr_perspective(self, node: ast.AST, target_perspective: Perspective | None = None) -> Perspective:
         """
         Compute the perspective of an expression.
@@ -527,7 +535,7 @@ class TypeChecker(ast.NodeVisitor):
             target_perspective: Optional perspective from LHS of assignment (for id() resolution)
         """
         if isinstance(node, ast.Name):
-            decl = self.symbol_table.lookup(node.id)
+            decl = self.lookup_with_partition_guard(node.id)
             if not decl:
                 raise UndeclaredVariableError(node.id)
             # Track access to claimed variables
@@ -593,9 +601,7 @@ class TypeChecker(ast.NodeVisitor):
 
             # Verify that the base is actually a pointer
             if isinstance(node.value, ast.Name):
-                decl = self.symbol_table.lookup(node.value.id)
-                if not decl:
-                    raise UndeclaredVariableError(node.value.id)
+                decl = self.lookup_with_partition_guard(node.value.id)
                 if not self._contains_ptr(decl.var_type):
                     raise InvalidDereferenceError(node.value.id, decl.var_type)
 
@@ -981,6 +987,7 @@ class TypeChecker(ast.NodeVisitor):
         2. p (target perspective) must be strictly narrower than ptr's perspective
         3. All variables in f (the lambda) must have perspective broader than or equal to p
         4. new_name is added to scope with ptr's type at perspective p
+        5. ptr is removed from scope for the duration of the partition
         """
         # Must have 'as new_name'
         if item.optional_vars is None:
@@ -1000,9 +1007,7 @@ class TypeChecker(ast.NodeVisitor):
         ptr_name = ptr_arg.id
 
         # Look up the pointer in symbol table
-        ptr_decl = self.symbol_table.lookup(ptr_name)
-        if not ptr_decl:
-            raise UndeclaredVariableError(ptr_name)
+        ptr_decl = self.lookup_with_partition_guard(ptr_name)
 
         # Check it's a pointer
         if not self._contains_ptr(ptr_decl.var_type):
@@ -1098,9 +1103,7 @@ class TypeChecker(ast.NodeVisitor):
         ptr_name = ptr_arg.id
 
         # Look up the pointer in symbol table
-        ptr_decl = self.symbol_table.lookup(ptr_name)
-        if not ptr_decl:
-            raise UndeclaredVariableError(ptr_name)
+        ptr_decl = self.lookup_with_partition_guard(ptr_name)
 
         # Check it's a pointer
         if not self._contains_ptr(ptr_decl.var_type):
